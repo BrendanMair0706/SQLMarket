@@ -1,0 +1,109 @@
+*/*I added a specific stock_ID to each table to be able to easily identify each date of the stocks and able anaylze easier */*
+
+--ALTER TABLE 
+--  dbo.CS
+--ADD Stock_ID Int identity(1,1);
+
+--ALTER TABLE 
+--  dbo.DB
+--ADD Stock_ID Int identity(1,1);
+
+--ALTER TABLE 
+--  dbo.FRC
+--ADD Stock_ID Int identity(1,1);
+
+--ALTER TABLE 
+--  dbo.SBNYP
+--ADD Stock_ID Int identity(1,1);
+
+--ALTER TABLE 
+--  dbo.SIVB
+--ADD Stock_ID Int identity(1,1);
+
+*/*I selected all on table CS to make sure the code worked as planned */*
+SELECT
+  *
+FROM
+  dbo.CS
+
+/* Change Volume from String to Int */
+ALTER TABLE 
+ dbo.CS
+ADD Volume_Int Int
+
+UPDATE 
+  dbo.CS
+SET
+  Volume_Int = CAST(Volume AS INT)
+
+ALTER TABLE 
+ dbo.CS
+DROP
+ COLUMN Volume
+
+/*How Much the dataset containts*/
+SELECT
+  COUNT(*)
+FROM
+  dbo.CS
+
+/* FInd the percent change of Open and Adj close for CS*/
+SELECT 
+  [Open]
+, (Adj_Close/[Open]-1)*100  AS Percetage_Change
+, Adj_Close
+, Date
+FROM 
+  dbo.CS
+ORDER BY
+ Percetage_Change ASC
+
+ /* FInd Average on High, Low, and the Volumne of the stock traded AFTER and BEFORE 2021*/
+SELECT
+  Avg(High) AS Average_High
+ ,Avg(Low) AS Average_Low
+ ,Avg(CAST(Volume_Int AS BIGINT)) AS Average_Volune
+FROM
+  dbo.CS C
+WHERE 
+  [Date] >= '2021-01-01'
+
+SELECT
+   Avg(High) AS Average_High
+ , Avg(Low) AS Average_Low
+ , Avg(CAST(Volume_Int AS BIGINT)) AS Average_Volune
+FROM
+  dbo.CS C
+WHERE 
+  [Date] < '2021-01-01'
+ 
+
+
+SELECT 
+   (Adj_Close/[Close]-1)*100  AS Percetage_Change
+  ,Date
+FROM 
+  dbo.CS
+
+ /* FInd the violtaility of the 5 Banks*/
+SELECT 
+    Bank_ID
+  , ROUND(avg([High]-[Low]),2) AS Avg_Volatility 
+  , DENSE_RANK() OVER(order by avg([High]-[Low]) ASC) AS Ranking FROM A1
+WHERE 
+    Bank_ID IS NOT NULL
+GROUP BY
+    Bank_ID
+
+ /* How many Days the Banks close above its opneing price*/
+ SELECT 
+    Bank_ID
+  , SUM(IF(([Close]>prev_day_cc)1,0)) AS Number_daysPrevious_Close
+  , DENSE_RANK() OVER(ORDER BY SUM(IF(([Close]>prev_day_cc)1,0))desc ) AS 'Rank'
+  FROM
+    (SELECT Bank_ID
+  , [Date]
+  , [Close]
+  , LAG([Close]) OVER(PARTITION BY Bank_ID ORDER BY [Date] ASC AS prev_day_cc FROM dbo.CS) AS xyz
+  GROUP BY
+    Bank_ID
